@@ -42,12 +42,13 @@ def _canonicalize_value(column: str, value: Any) -> str:
     if column in ["cholesterol", "glucose", "blood_sugar"]:
         mapping = {
             "low": "Low",
+            "normal": "Medium",
             "medium": "Medium",
             "med": "Medium",
             "high": "High",
         }
         if text not in mapping:
-            raise ValueError(f"{column} must be Low, Medium, or High")
+            raise ValueError(f"{column} must be Normal, Low, or High")
         return mapping[text]
 
     if column in ["smoking", "drinking", "yoga", "exercise", "gym"]:
