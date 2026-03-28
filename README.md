@@ -16,3 +16,10 @@ Run the starter script:
 ```bash
 python heart_disease_rf_setup.py
 ```
+
+## Run Streamlit app
+Start the web app:
+
+```bash
+python -m streamlit run app.py
+```
