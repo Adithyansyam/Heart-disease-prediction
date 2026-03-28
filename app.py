@@ -199,7 +199,7 @@ else:
             glucose = st.selectbox("Glucose", ["Normal", "Low", "High"])
 
         with col2:
-            blood_sugar = st.selectbox("Blood Sugar", ["Low", "Medium", "High"])
+            blood_sugar = st.selectbox("Blood Sugar", ["Normal", "Low", "High"])
             smoking = st.selectbox("Smoking", ["No", "Yes"])
             drinking = st.selectbox("Drinking", ["No", "Yes"])
             yoga = st.selectbox("Yoga", ["No", "Yes"])
