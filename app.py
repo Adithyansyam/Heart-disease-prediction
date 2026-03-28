@@ -89,6 +89,43 @@ def combined_risk_level(model_probability: float, bp_status: str) -> tuple[str, 
     return "High", combined_probability
 
 
+def bmi_category(height_cm: float, weight_kg: float) -> tuple[float, str]:
+    height_m = max(height_cm / 100.0, 0.01)
+    bmi = weight_kg / (height_m**2)
+    if bmi < 18.5:
+        return bmi, "Underweight"
+    if bmi < 25.0:
+        return bmi, "Normal"
+    if bmi < 30.0:
+        return bmi, "Overweight"
+    return bmi, "Obese"
+
+
+def render_hero(title: str, subtitle: str, pills: list[str] | None = None) -> None:
+    st.title(title)
+    st.caption(subtitle)
+    if pills:
+        st.write(" | ".join(pills))
+
+
+def render_metric_chip(label: str, value: str, badge_text: str | None = None, badge_tone: str | None = None) -> None:
+    tone_prefix = ""
+    if badge_text:
+        tone_prefix = f" [{badge_tone}]" if badge_tone else ""
+        badge = f" ({badge_text}{tone_prefix})"
+    else:
+        badge = ""
+    st.metric(label, f"{value}{badge}")
+
+
+def render_insight_cards(items: list[tuple[str, str]]) -> None:
+    cols = st.columns(len(items))
+    for col, (label, value) in zip(cols, items):
+        with col:
+            st.markdown(f"**{label}**")
+            st.write(value)
+
+
 st.set_page_config(page_title="CardioInsight | Heart Risk Intelligence", layout="wide")
 
 THEMES = {
@@ -120,12 +157,12 @@ THEMES = {
 
 st.sidebar.title("CardioInsight")
 st.sidebar.write("Heart disease screening workspace")
+page = st.sidebar.radio("Workspace", ["Risk Calculator", "Train Model"], index=0)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     "Small clinical decision support UI for model exploration and personal risk estimation."
 )
-st.sidebar.caption("Design mode: " + selected_theme)
 
 if page == "Train Model":
     render_hero(
@@ -292,10 +329,10 @@ else:
             height = st.number_input("Height (cm)", min_value=50.0, max_value=250.0, value=170.0)
             weight = st.number_input("Weight (kg)", min_value=10.0, max_value=300.0, value=60.0)
             cholesterol = st.selectbox("Cholesterol", ["Normal", "Low", "High"], index=0)
-            glucose = st.selectbox("Glucose", ["Normal", "High"], index=0)
+            glucose = st.selectbox("Glucose", ["Normal", "Low", "High"], index=0)
 
         with col2:
-            blood_sugar = st.selectbox("Blood Sugar", ["Normal", "High"], index=0)
+            blood_sugar = st.selectbox("Blood Sugar", ["Normal", "Low", "High"], index=0)
             smoking = st.selectbox("Smoking", ["No", "Yes"], index=0)
             drinking = st.selectbox("Drinking", ["No", "Yes"], index=0)
             activity = st.selectbox("Activity (Yoga / Exercise)", ["No", "Yes"], index=1)
@@ -347,119 +384,17 @@ else:
             bp_status, bp_note, bp_message_type = classify_blood_pressure(int(systolic_bp), int(diastolic_bp))
             overall_level, combined_probability = combined_risk_level(probability, bp_status)
             bmi, bmi_status = bmi_category(float(height), float(weight))
-            active_habits = int(activity == "Yes")
-            risk_habits = sum([smoking == "Yes", drinking == "Yes"])
-            progress.progress(100, text="Dashboard ready")
-            time.sleep(0.06)
+            progress.empty()
 
-            st.markdown('<p class="section-title">Risk Dashboard</p>', unsafe_allow_html=True)
-            kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
-            with kpi_col1:
-                render_metric_chip("Heart disease probability", f"{probability * 100:.2f}%")
-            with kpi_col2:
-                render_metric_chip("Prediction confidence", f"{confidence * 100:.2f}%")
-            with kpi_col3:
-                tone = "high" if overall_level == "High" else "moderate" if overall_level == "Moderate" else "low"
-                render_metric_chip(
-                    "Combined risk estimate",
-                    f"{combined_probability * 100:.2f}%",
-                    badge_text=overall_level,
-                    badge_tone=tone,
-                )
-
-            if prediction == 1:
-                st.error(
-                    f"Risk class: {result['risk_label']}. Model predicts approximately {probability * 100:.2f}% chance of heart disease."
-                )
-            else:
-                st.success(
-                    f"Risk class: {result['risk_label']}. Model predicts approximately {probability * 100:.2f}% chance of heart disease."
-                )
-
-            if activity == "Yes":
-                st.info(
-                    f"Activity benefit applied: base risk reduced by 10% ({base_probability * 100:.2f}% to {activity_adjusted_probability * 100:.2f}%)."
-                )
-
-            if low_penalty > 0:
-                st.warning(
-                    f"Low-value adjustment applied: +{low_penalty * 100:.0f}% risk due to {low_count} low selection(s) in cholesterol/glucose/blood sugar."
-                )
-
-            render_insight_cards(
-                [
-                    ("BMI", f"{bmi:.1f} ({bmi_status})"),
-                    ("Active habits", f"{active_habits} / 1"),
-                    ("Risk habits", f"{risk_habits} / 2"),
-                    ("Blood pressure", f"{int(systolic_bp)}/{int(diastolic_bp)} mmHg"),
-                ]
+            st.markdown('<p class="subtle">Risk meter (combined)</p>', unsafe_allow_html=True)
+            st.progress(
+                int(combined_probability * 100),
+                text=f"Risk Meter: {combined_probability * 100:.2f}% ({overall_level})",
             )
 
-            tab_overview, tab_clinical, tab_reliability = st.tabs(["Overview", "Clinical Detail", "Reliability"])
-
-            with tab_overview:
-                st.markdown('<p class="subtle">Combined probability meter</p>', unsafe_allow_html=True)
-                st.progress(int(combined_probability * 100), text=f"Risk Meter: {combined_probability * 100:.2f}%")
-                fig_gauge, ax_gauge = plt.subplots(figsize=(4.8, 2.8))
-                wedges = [combined_probability, 1.0 - combined_probability]
-                colors = ["#e76f51" if combined_probability >= 0.5 else "#f4a261", "#e5edf6"]
-                ax_gauge.pie(
-                    wedges,
-                    colors=colors,
-                    startangle=180,
-                    counterclock=False,
-                    wedgeprops={"width": 0.35, "edgecolor": "white"},
-                )
-                ax_gauge.text(0, -0.05, f"{combined_probability * 100:.1f}%", ha="center", va="center", fontsize=16, fontweight="bold")
-                ax_gauge.text(0, -0.28, "Integrated Risk", ha="center", va="center", fontsize=9)
-                ax_gauge.set_aspect("equal")
-                st.pyplot(fig_gauge)
-
-            with tab_clinical:
-                st.markdown('<p class="section-title">Blood Pressure Analysis</p>', unsafe_allow_html=True)
-                st.write(f"Measured BP: {int(systolic_bp)}/{int(diastolic_bp)} mmHg")
-                st.write(f"Category: {bp_status}")
-                if bp_message_type == "error":
-                    st.error(bp_note)
-                elif bp_message_type == "warning":
-                    st.warning(bp_note)
-                elif bp_message_type == "info":
-                    st.info(bp_note)
-                else:
-                    st.success(bp_note)
-                if bmi_status in {"Overweight", "Obese"}:
-                    st.warning("BMI is above the normal range. Weight management can lower cardiovascular risk.")
-                elif bmi_status == "Underweight":
-                    st.info("BMI is below the normal range. Nutritional assessment may be helpful.")
-                else:
-                    st.success("BMI is within the normal range.")
-
-            with tab_reliability:
-                st.markdown('<p class="section-title">Model Reliability</p>', unsafe_allow_html=True)
-                try:
-                    model_acc = get_saved_model_accuracy()
-                except Exception as exc:
-                    st.info(f"Model test accuracy unavailable: {exc}")
-                    model_acc = None
-                else:
-                    acc_pct = model_acc * 100
-                    render_metric_chip("Test accuracy", f"{acc_pct:.2f}%")
-                    if acc_pct >= 90:
-                        st.success("Model reliability appears strong on held-out test data.")
-                    elif acc_pct >= 75:
-                        st.info("Model reliability appears acceptable on held-out test data.")
-                    else:
-                        st.warning("Model reliability is modest. Treat predictions cautiously.")
-
-            st.markdown('<p class="section-title">Interpretation</p>', unsafe_allow_html=True)
-            if overall_level == "High":
-                st.error(f"Overall risk level: {overall_level} ({combined_probability * 100:.2f}%)")
-            elif overall_level == "Moderate":
-                st.warning(f"Overall risk level: {overall_level} ({combined_probability * 100:.2f}%)")
-            else:
-                st.success(f"Overall risk level: {overall_level} ({combined_probability * 100:.2f}%)")
-
-            st.caption(
-                "This output is generated from a machine learning model and blood pressure logic. "
-                "It supports awareness and is not a medical diagnosis."
+            bmi_progress = int(min(100, max(0, (bmi / 40.0) * 100)))
+            st.markdown('<p class="subtle">BMI meter</p>', unsafe_allow_html=True)
+            st.progress(
+                bmi_progress,
+                text=f"BMI: {bmi:.1f} ({bmi_status})",
             )
