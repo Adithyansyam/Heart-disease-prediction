@@ -10,6 +10,7 @@ RANDOM_SEED = 42
 rng = np.random.default_rng(RANDOM_SEED)
 
 age = rng.integers(25, 81, N_ROWS)
+
 gender = rng.choice(["Male", "Female"], size=N_ROWS, p=[0.52, 0.48])
 height = rng.normal(168, 10, N_ROWS).clip(145, 200).round(1)
 weight = rng.normal(72, 14, N_ROWS).clip(40, 140).round(1)
