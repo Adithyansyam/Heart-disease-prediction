@@ -443,9 +443,7 @@ if page == "Train Model":
         pills=["Random Forest", "Visual Evaluation", "One-Click Export"],
     )
 
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
     uploaded_file = st.file_uploader("Upload dataset (CSV)", type=["csv"])
-    st.markdown("</div>", unsafe_allow_html=True)
 
     if uploaded_file is None:
         st.info("Upload a CSV file to begin model training.")
@@ -609,9 +607,7 @@ else:
             blood_sugar = st.selectbox("Blood Sugar", ["Normal", "Low", "High"])
             smoking = st.selectbox("Smoking", ["No", "Yes"])
             drinking = st.selectbox("Drinking", ["No", "Yes"])
-            yoga = st.selectbox("Yoga", ["No", "Yes"])
-            exercise = st.selectbox("Exercise", ["No", "Yes"])
-            gym = st.selectbox("Gym", ["No", "Yes"])
+            activity = st.selectbox("Activity (Yoga / Exercise)", ["No", "Yes"])
 
         submitted = st.form_submit_button("Calculate Risk")
 
@@ -630,9 +626,9 @@ else:
             "blood_sugar": blood_sugar,
             "smoking": smoking,
             "drinking": drinking,
-            "yoga": yoga,
-            "exercise": exercise,
-            "gym": gym,
+            "yoga": activity,
+            "exercise": activity,
+            "gym": "No",
         }
 
         try:
@@ -645,13 +641,22 @@ else:
             st.error(f"Could not calculate risk: {exc}")
         else:
             progress.progress(78, text="Calculating integrated risk")
-            probability = result["probability_heart_disease"]
+            base_probability = result["probability_heart_disease"]
             prediction = int(result["prediction"])
+            activity_adjustment = 0.9 if activity == "Yes" else 1.0
+            activity_adjusted_probability = base_probability * activity_adjustment
+            low_count = sum([
+                cholesterol == "Low",
+                glucose == "Low",
+                blood_sugar == "Low",
+            ])
+            low_penalty = min(0.04, 0.02 * low_count)
+            probability = min(1.0, activity_adjusted_probability + low_penalty)
             confidence = probability if prediction == 1 else (1.0 - probability)
             bp_status, bp_note, bp_message_type = classify_blood_pressure(int(systolic_bp), int(diastolic_bp))
             overall_level, combined_probability = combined_risk_level(probability, bp_status)
             bmi, bmi_status = bmi_category(float(height), float(weight))
-            active_habits = sum([yoga == "Yes", exercise == "Yes", gym == "Yes"])
+            active_habits = int(activity == "Yes")
             risk_habits = sum([smoking == "Yes", drinking == "Yes"])
             progress.progress(100, text="Dashboard ready")
             time.sleep(0.06)
@@ -680,10 +685,20 @@ else:
                     f"Risk class: {result['risk_label']}. Model predicts approximately {probability * 100:.2f}% chance of heart disease."
                 )
 
+            if activity == "Yes":
+                st.info(
+                    f"Activity benefit applied: base risk reduced by 10% ({base_probability * 100:.2f}% to {activity_adjusted_probability * 100:.2f}%)."
+                )
+
+            if low_penalty > 0:
+                st.warning(
+                    f"Low-value adjustment applied: +{low_penalty * 100:.0f}% risk due to {low_count} low selection(s) in cholesterol/glucose/blood sugar."
+                )
+
             render_insight_cards(
                 [
                     ("BMI", f"{bmi:.1f} ({bmi_status})"),
-                    ("Active habits", f"{active_habits} / 3"),
+                    ("Active habits", f"{active_habits} / 1"),
                     ("Risk habits", f"{risk_habits} / 2"),
                     ("Blood pressure", f"{int(systolic_bp)}/{int(diastolic_bp)} mmHg"),
                 ]
