@@ -594,20 +594,20 @@ else:
         col1, col2 = st.columns(2)
 
         with col1:
-            age = st.number_input("Age", min_value=1, max_value=120, value=45)
-            gender = st.selectbox("Gender", ["Male", "Female"])
-            systolic_bp = st.number_input("Systolic BP (mmHg)", min_value=70, max_value=250, value=120, step=1)
-            diastolic_bp = st.number_input("Diastolic BP (mmHg)", min_value=40, max_value=150, value=80, step=1)
-            height = st.number_input("Height (cm)", min_value=80.0, max_value=250.0, value=170.0, step=0.1)
-            weight = st.number_input("Weight (kg)", min_value=20.0, max_value=300.0, value=75.0, step=0.1)
-            cholesterol = st.selectbox("Cholesterol", ["Normal", "Low", "High"])
-            glucose = st.selectbox("Glucose", ["Normal", "Low", "High"])
+            age = st.number_input("Age", min_value=1, max_value=120, value=20)
+            gender = st.selectbox("Gender", ["Male", "Female"], index=0)
+            systolic_bp = st.number_input("Systolic BP (mmHg)", min_value=50, max_value=250, value=120)
+            diastolic_bp = st.number_input("Diastolic BP (mmHg)", min_value=30, max_value=150, value=80)
+            height = st.number_input("Height (cm)", min_value=50.0, max_value=250.0, value=170.0)
+            weight = st.number_input("Weight (kg)", min_value=10.0, max_value=300.0, value=60.0)
+            cholesterol = st.selectbox("Cholesterol", ["Normal", "Low", "High"], index=0)
+            glucose = st.selectbox("Glucose", ["Normal", "High"], index=0)
 
         with col2:
-            blood_sugar = st.selectbox("Blood Sugar", ["Normal", "Low", "High"])
-            smoking = st.selectbox("Smoking", ["No", "Yes"])
-            drinking = st.selectbox("Drinking", ["No", "Yes"])
-            activity = st.selectbox("Activity (Yoga / Exercise)", ["No", "Yes"])
+            blood_sugar = st.selectbox("Blood Sugar", ["Normal", "High"], index=0)
+            smoking = st.selectbox("Smoking", ["No", "Yes"], index=0)
+            drinking = st.selectbox("Drinking", ["No", "Yes"], index=0)
+            activity = st.selectbox("Activity (Yoga / Exercise)", ["No", "Yes"], index=1)
 
         submitted = st.form_submit_button("Calculate Risk")
 
