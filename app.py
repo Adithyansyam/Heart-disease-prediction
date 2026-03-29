@@ -1,6 +1,7 @@
 import os
 from io import BytesIO
 import time
+import hashlib
 
 import joblib
 import matplotlib.pyplot as plt
@@ -166,6 +167,98 @@ def render_insight_cards(items: list[tuple[str, str]]) -> None:
         with col:
             st.markdown(f"**{label}**")
             st.write(value)
+
+
+ALLOWED_EMAILS = {
+    "gaurisnair@gmail.com",
+    "adithyasunil@gmail.com",
+    "ansalna@gmail.com",
+    "mabay@gmail.com",
+}
+PASSWORD_HASH = hashlib.sha256("12345678".encode("utf-8")).hexdigest()
+
+
+def _check_credentials(email: str, password: str) -> bool:
+    clean_email = email.strip().lower()
+    password_hash = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return clean_email in ALLOWED_EMAILS and password_hash == PASSWORD_HASH
+
+
+def _init_auth_state() -> None:
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    if "user_email" not in st.session_state:
+        st.session_state.user_email = ""
+
+
+def render_login_screen() -> None:
+    st.markdown(
+        """
+        <style>
+        [data-testid="stAppViewContainer"] .main .block-container {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .login-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78));
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 18px 38px rgba(15,35,56,0.12);
+            padding: 1.15rem;
+            backdrop-filter: blur(5px);
+        }
+        .login-kicker {
+            margin: 0;
+            font-size: 0.73rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--brand);
+        }
+        .login-title {
+            margin: 0.35rem 0 0.4rem 0;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--ink);
+            font-size: clamp(1.22rem, 2vw, 1.55rem);
+            line-height: 1.25;
+        }
+        .login-copy {
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    left_col, center_col, right_col = st.columns([1.0, 1.1, 1.0])
+    with center_col:
+        st.markdown(
+            """
+            <div class="login-card">
+                <p class="login-kicker">Secure Access</p>
+                <h2 class="login-title">Sign in to CardioInsight</h2>
+                <p class="login-copy">Use your authorized email and password to continue.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        with st.form("login_form", clear_on_submit=False):
+            login_email = st.text_input("Email", placeholder="name@example.com")
+            login_password = st.text_input("Password", type="password", placeholder="Enter password")
+            submitted = st.form_submit_button("Login", use_container_width=True)
+
+        if submitted:
+            if _check_credentials(login_email, login_password):
+                st.session_state.logged_in = True
+                st.session_state.user_email = login_email.strip().lower()
+                st.success("Login successful")
+                st.rerun()
+            else:
+                st.error("Invalid email or password")
 
 
 st.set_page_config(page_title="CardioInsight | Heart Risk Intelligence", layout="wide")
@@ -455,8 +548,19 @@ st.markdown(
         unsafe_allow_html=True,
 )
 
+_init_auth_state()
+if not st.session_state.logged_in:
+    render_login_screen()
+    st.stop()
+
 st.sidebar.title("CardioInsight")
 st.sidebar.write("Heart disease screening workspace")
+st.sidebar.caption(f"Signed in as {st.session_state.user_email}")
+if st.sidebar.button("Logout", use_container_width=True):
+    st.session_state.logged_in = False
+    st.session_state.user_email = ""
+    st.rerun()
+
 page = st.sidebar.radio("Workspace", ["Risk Calculator", "Train Model"], index=0)
 
 st.sidebar.markdown("---")
