@@ -83,7 +83,7 @@ def combined_risk_level(model_probability: float, bp_status: str) -> tuple[str, 
     }
     combined_probability = min(1.0, model_probability + adjustment.get(bp_status, 0.0))
 
-    if combined_probability < 0.20:
+    if combined_probability < 0.30:
         return "Low", combined_probability
     if combined_probability < 0.50:
         return "Moderate", combined_probability
